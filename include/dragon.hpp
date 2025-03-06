@@ -13,7 +13,7 @@
 
 typedef struct {
     glm::vec2 pos;
-    i32 direction; // in degrees
+    i32 direction; // in quarter turns with 0 being towards the right
 } Line;
 
 class DragonCurve {
