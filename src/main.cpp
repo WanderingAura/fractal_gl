@@ -28,10 +28,11 @@ void processInput(GLFWwindow *window);
 int main(int argc, char** argv) {
     if (argc == 2) {
         int n = atoi(argv[1]);
-        generateDragonSeq(n);
         // TODO: draw the dragon curve. to draw the next line in the curve we need:
         // 1. the current position of the head
         // 2. the current orientation of the head
+        DragonCurve curve(n);
+        curve.generateLines(0.01f, glm::vec2(0.0f, 0.0f));
         return 0;
     }
 
@@ -83,9 +84,7 @@ int main(int argc, char** argv) {
 
     glEnable(GL_DEPTH_TEST);
 
-    glm::vec3 cubePositions[] = {
-        glm::vec3( 0.0f, 0.0f, 0.0f ),
-    };
+    const float line_length = 0.01f;
 
     while (!glfwWindowShouldClose(window)) {
         processInput(window);
@@ -93,7 +92,6 @@ int main(int argc, char** argv) {
         glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         shader.use();
-
 
         i32 modelLoc = shader.getUniformLoc("model");
         i32 viewLoc = shader.getUniformLoc("view");
