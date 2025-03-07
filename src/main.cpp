@@ -1,14 +1,9 @@
-#include "glm/ext/matrix_clip_space.hpp"
-#include "glm/ext/matrix_transform.hpp"
-#include "glm/ext/scalar_constants.hpp"
-#include "glm/trigonometric.hpp"
 #include <cstring>
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
-#include <unistd.h>
 
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
@@ -35,14 +30,9 @@ int main(int argc, char** argv) {
     }
 
     int n = atoi(argv[1]);
-    if (n <= 0) {
-        std::cerr << "invalid input. this program only accepts integer arguments < 2^32\n";
+    if (n <= 0 || n >= 20) {
+        std::cerr << "invalid input. the order of the curve should be between 1 and 19\n";
     }
-    const float line_length = 0.02f;
-
-    DragonCurve curve(n);
-    curve.generateLines(line_length, glm::vec2(0.0f, 0.0f));
-
     // create window
     if (!glfwInit()) {
         std::cout << "Failed to initialise GLFW\n";
@@ -69,63 +59,34 @@ int main(int argc, char** argv) {
         return -1;
     }
 
-    Shader shader("../shaders/shader.vs",
-                  "../shaders/shader.fs");
+    const float line_length = 0.02f;
 
-    f32 vertices[] = {
-        0.0f, 0.0f, 0.0f,
-        0.5f, 0.0f, 0.0f,
-    };
+    DragonCurve curve(n, line_length);
+    curve.generateLines(glm::vec2(0.5f, -0.2f));
 
-    u32 VAO;
-    glGenVertexArrays(1, &VAO);
-    glBindVertexArray(VAO);
-    u32 VBO;
-    glGenBuffers(1, &VBO);
-    glBindBuffer(GL_ARRAY_BUFFER, VBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+    curve.initGL();
 
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
-    glEnableVertexAttribArray(0);
+    i32 numLines[30]; // FIX: temp calculation to test different orders of curves
+    numLines[0] = 1;
+    for (i32 i = 1; i < n; i++) {
+        numLines[i] = numLines[i-1]*2 + 1;
+    }
 
-    shader.use();
-
-    i32 modelLoc = shader.getUniformLoc("model");
-    i32 greenLoc = shader.getUniformLoc("green");
-    // i32 viewLoc = shader.getUniformLoc("view");
-    // i32 projLoc = shader.getUniformLoc("projection");
-
-    glfwSwapBuffers(window);
-    glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
-    glClear(GL_COLOR_BUFFER_BIT);
     f64 startTime = glfwGetTime();
     while (!glfwWindowShouldClose(window)) {
         f64 curTime = glfwGetTime();
         f64 timeSinceLastFrame = curTime - startTime;
+        if (timeSinceLastFrame < 1/60.0) {
+            continue;
+        }
         startTime = curTime;
-        processInput(window, curve.lines.size());
+        processInput(window, n);
 
         glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT);
 
-        shader.use();
+        curve.renderCurve(numLines[curve_iteration % n]);
 
-        glBindVertexArray(VAO);
-        for (i32 i = 0; i < curve_iteration; i++) {
-            Line& line = curve.lines[i];
-            
-            float green = (float)i/curve.lines.size();
-
-            glUniform1f(greenLoc, green);
-            glm::mat4 model(1.0f);
-            model = glm::translate(model, glm::vec3(line.pos.x, line.pos.y, 0.0f));
-            model = glm::rotate(model, glm::radians(line.direction*90.0f),
-                                glm::vec3(0.0f, 0.0f, 1.0f));
-            model = glm::scale(model, glm::vec3(line_length*2, line_length*2, 1.0f));
-            glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
-            glDrawArrays(GL_LINES, 0, 2);
-
-        }
         glfwPollEvents();
         glfwSwapBuffers(window);
     }
@@ -141,14 +102,18 @@ void processInput(GLFWwindow *window, i32 maxIteration) {
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS) {
         glfwSetWindowShouldClose(window, true);
     }
-    if (glfwGetKey(window, GLFW_KEY_UP)) {
+    if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS) {
         if (curve_iteration < maxIteration) {
-            curve_iteration++;
+            curve_iteration += 1;
+        } else {
+            curve_iteration = 0;
         }
     }
-    if (glfwGetKey(window, GLFW_KEY_DOWN)) {
+    if (glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS) {
         if (curve_iteration > 0) {
-            curve_iteration--;
+            curve_iteration-=1;
+        } else {
+            curve_iteration = 0;
         }
     }
 }

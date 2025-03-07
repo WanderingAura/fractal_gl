@@ -1,13 +1,62 @@
 #include "bit_array.hpp"
 #include "glm/ext/vector_float2.hpp"
+#include "glm/ext/matrix_transform.hpp"
+#include "glm/gtc/type_ptr.hpp"
+#include "glm/trigonometric.hpp"
 #include "numeric_types.h"
 #include <cassert>
 #include "dragon.hpp"
 
 
-DragonCurve::DragonCurve(u32 n) : order(n) {}
+DragonCurve::DragonCurve(u32 n, f32 lineLen) :
+    order(n),
+    lineLen(lineLen),
+    shader("../shaders/shader.vs", "../shaders/shader.fs") {}
 
-void DragonCurve::generateLines(f32 lineLen, glm::vec2 startPos) {
+void DragonCurve::initGL() {
+
+    f32 vertices[] = {
+        0.0f, 0.0f, 0.0f,
+        0.5f, 0.0f, 0.0f,
+    };
+
+    glGenVertexArrays(1, &VAO);
+    glBindVertexArray(VAO);
+    glGenBuffers(1, &VBO);
+    glBindBuffer(GL_ARRAY_BUFFER, VBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+    glEnableVertexAttribArray(0);
+
+    shader.use();
+
+    modelLoc = shader.getUniformLoc("model");
+    greenLoc = shader.getUniformLoc("green");
+}
+
+void DragonCurve::renderCurve(i32 numLines) {
+    shader.use();
+    glBindVertexArray(VAO);
+
+    for (i32 i = 0; i < numLines; i++) {
+        Line& line = lines[i];
+        
+        float green = (float)i/lines.size();
+
+        glUniform1f(greenLoc, green);
+        glm::mat4 model(1.0f);
+        model = glm::translate(model, glm::vec3(line.pos.x, line.pos.y, 0.0f));
+        model = glm::rotate(model, glm::radians(line.direction*90.0f),
+                            glm::vec3(0.0f, 0.0f, 1.0f));
+        model = glm::scale(model, glm::vec3(lineLen*2, lineLen*2, 1.0f));
+        glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
+        glDrawArrays(GL_LINES, 0, 2);
+
+    }
+}
+
+void DragonCurve::generateLines(glm::vec2 startPos) {
     if (lines.size() != 0) {
         std::cerr << "lines have already been generated. generateLines should only be called"
             " once per instance\n";
@@ -19,7 +68,7 @@ void DragonCurve::generateLines(f32 lineLen, glm::vec2 startPos) {
 
     genSequence(order);
 
-    static glm::vec2 cardinals[] {
+    static const glm::vec2 cardinals[] {
         glm::vec2(1.0f, 0.0f),
         glm::vec2(0.0f, 1.0f),
         glm::vec2(-1.0f, 0.0f),
@@ -38,12 +87,6 @@ void DragonCurve::generateLines(f32 lineLen, glm::vec2 startPos) {
         assert(curLine.direction < 4 && curLine.direction >= 0);
         lines.push_back(curLine);
     }
-    
-    std::cout << "Lines: \n";
-    for (auto line : lines) {
-        std::cout << "coord: " << line.pos.x << " " << line.pos.y
-            << ", direction: " << line.direction << std::endl;
-    }
 }
 
 void DragonCurve::genSequence(u32 n) {
@@ -61,5 +104,5 @@ void DragonCurve::genSequence(u32 n) {
         }
     }
 
-    sequence.print();
+    // sequence.print();
 }

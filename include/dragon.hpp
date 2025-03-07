@@ -5,11 +5,9 @@
 
 #include "numeric_types.h"
 #include "bit_array.hpp"
+#include "shader.h"
 
-#include "glm/ext/matrix_clip_space.hpp"
-#include "glm/ext/matrix_transform.hpp"
-#include "glm/trigonometric.hpp"
-
+#include <glm/vec2.hpp>
 
 typedef struct {
     glm::vec2 pos;
@@ -20,13 +18,28 @@ class DragonCurve {
 public:
     std::vector<Line> lines;
 
-    DragonCurve(u32 n);
+    DragonCurve(u32 n, f32 lineLen);
 
-    void generateLines(f32 lineLen, glm::vec2 startPos);
+    void generateLines(glm::vec2 startPos);
+
+    void initGL();
+    void renderCurve(i32 numLines);
 
 private:
     BitArray sequence;
+
+    // OpenGL shader/buffers
+    Shader shader;
+    u32 VAO;
+    u32 VBO;
+
+    // uniform locations
+    i32 modelLoc;
+    i32 greenLoc;
+
+    // curve properties
     u32 order;
+    f32 lineLen;
 
     void genSequence(u32 n);
 };
