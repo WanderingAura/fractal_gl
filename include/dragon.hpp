@@ -18,9 +18,9 @@ class DragonCurve {
 public:
     std::vector<Line> lines;
 
-    DragonCurve(u32 n, f32 lineLen);
+    DragonCurve(u32 n);
 
-    void generateLines(glm::vec2 startPos);
+    void generateLines();
 
     void initGL();
     void renderCurve(i32 numLines);

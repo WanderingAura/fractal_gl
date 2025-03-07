@@ -1,23 +1,58 @@
 #include "bit_array.hpp"
+#include "glm/common.hpp"
 #include "glm/ext/vector_float2.hpp"
 #include "glm/ext/matrix_transform.hpp"
 #include "glm/gtc/type_ptr.hpp"
 #include "glm/trigonometric.hpp"
 #include "numeric_types.h"
 #include <cassert>
+#include <cmath>
 #include "dragon.hpp"
+#include <GLFW/glfw3.h>
 
+static const float SIZE_FACTOR = 0.8;
 
-DragonCurve::DragonCurve(u32 n, f32 lineLen) :
+class Boundary {
+public:
+    float xMin;
+    float xMax;
+    float yMin;
+    float yMax;
+    float maxRange;
+
+    Boundary() : xMin(INFINITY), xMax(-INFINITY), yMin(INFINITY), yMax(-INFINITY) {}
+    
+    void setMinMax(float x, float y) {
+        if (x > xMax) {
+            xMax = x;
+        }
+        if (x < xMin) {
+            xMin = x;
+        }
+        if (y > yMax) {
+            yMax = y;
+        }
+        if (y < yMin) {
+            yMin = y;
+        }
+        maxRange = glm::max(xMax-xMin, yMax-yMin);
+    }
+
+    void normalise(glm::vec2& vec) {
+        vec.x = SIZE_FACTOR*2*(vec.x - (xMax + xMin)/2) / maxRange;
+        vec.y = SIZE_FACTOR*2*(vec.y - (yMax + yMin)/2) / maxRange;
+    }
+};
+
+DragonCurve::DragonCurve(u32 n) :
     order(n),
-    lineLen(lineLen),
     shader("../shaders/shader.vs", "../shaders/shader.fs") {}
 
 void DragonCurve::initGL() {
 
     f32 vertices[] = {
         0.0f, 0.0f, 0.0f,
-        0.5f, 0.0f, 0.0f,
+        1.0f, 0.0f, 0.0f,
     };
 
     glGenVertexArrays(1, &VAO);
@@ -38,6 +73,7 @@ void DragonCurve::initGL() {
 void DragonCurve::renderCurve(i32 numLines) {
     shader.use();
     glBindVertexArray(VAO);
+    float curTime = glfwGetTime();
 
     for (i32 i = 0; i < numLines; i++) {
         Line& line = lines[i];
@@ -46,17 +82,19 @@ void DragonCurve::renderCurve(i32 numLines) {
 
         glUniform1f(greenLoc, green);
         glm::mat4 model(1.0f);
+        model = glm::rotate(model, glm::radians(curTime*120.0f),
+                            glm::vec3(0.0f, 0.0f, 1.0f));
         model = glm::translate(model, glm::vec3(line.pos.x, line.pos.y, 0.0f));
         model = glm::rotate(model, glm::radians(line.direction*90.0f),
                             glm::vec3(0.0f, 0.0f, 1.0f));
-        model = glm::scale(model, glm::vec3(lineLen*2, lineLen*2, 1.0f));
+        model = glm::scale(model, glm::vec3(lineLen, lineLen, 1.0f));
         glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
         glDrawArrays(GL_LINES, 0, 2);
 
     }
 }
 
-void DragonCurve::generateLines(glm::vec2 startPos) {
+void DragonCurve::generateLines() {
     if (lines.size() != 0) {
         std::cerr << "lines have already been generated. generateLines should only be called"
             " once per instance\n";
@@ -76,17 +114,28 @@ void DragonCurve::generateLines(glm::vec2 startPos) {
     };
     
     Line curLine = {};
-    curLine.pos = startPos;
     lines.push_back(curLine);
+
+    Boundary curveBoundary;
 
     for (u32 i = 0; i < sequence.size; i++) {
         i32 turn = sequence.get(i) ? 1 : -1;
-        curLine.pos += lineLen * cardinals[curLine.direction];
+        curLine.pos += cardinals[curLine.direction];
+        curLine.pos.x = round(curLine.pos.x);
+        curLine.pos.y = round(curLine.pos.y);
+        curveBoundary.setMinMax(curLine.pos.x, curLine.pos.y);
+
         curLine.direction += turn;
         curLine.direction = curLine.direction & 3;
         assert(curLine.direction < 4 && curLine.direction >= 0);
         lines.push_back(curLine);
     }
+
+    // normalise coords to values between -1.0 and 1.0
+    for (auto& line : lines) {
+        curveBoundary.normalise(line.pos);
+    }
+    lineLen = SIZE_FACTOR * 2/curveBoundary.maxRange;
 }
 
 void DragonCurve::genSequence(u32 n) {

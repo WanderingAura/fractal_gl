@@ -1,3 +1,4 @@
+#include <cmath>
 #include <cstring>
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
@@ -59,10 +60,12 @@ int main(int argc, char** argv) {
         return -1;
     }
 
-    const float line_length = 0.02f;
+    float curveMaxWidth = pow(2, n/2.0);
+    printf("width=%f\n", curveMaxWidth);
+    const float line_length = 1/curveMaxWidth;
 
-    DragonCurve curve(n, line_length);
-    curve.generateLines(glm::vec2(0.5f, -0.2f));
+    DragonCurve curve(n);
+    curve.generateLines();
 
     curve.initGL();
 
@@ -70,22 +73,31 @@ int main(int argc, char** argv) {
     numLines[0] = 1;
     for (i32 i = 1; i < n; i++) {
         numLines[i] = numLines[i-1]*2 + 1;
+        printf("numLines = %d\n", numLines[i]);
     }
 
+    double totalTime = 0;
+    i32 numFrames = 0;
     f64 startTime = glfwGetTime();
     while (!glfwWindowShouldClose(window)) {
         f64 curTime = glfwGetTime();
         f64 timeSinceLastFrame = curTime - startTime;
-        if (timeSinceLastFrame < 1/60.0) {
-            continue;
+        totalTime += timeSinceLastFrame;
+        numFrames++;
+        if (numFrames == 60) {
+            f64 averageFrameTime = totalTime/numFrames;
+            printf("averageFrameTime = %lf, FPS = %lf, lines=%d\n", averageFrameTime,
+                   1/averageFrameTime, numLines[n-1]);
+            numFrames = 0;
+            totalTime = 0;
         }
         startTime = curTime;
         processInput(window, n);
 
-        glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
+        glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT);
 
-        curve.renderCurve(numLines[curve_iteration % n]);
+        curve.renderCurve(curve.lines.size());
 
         glfwPollEvents();
         glfwSwapBuffers(window);
