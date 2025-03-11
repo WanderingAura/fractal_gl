@@ -1,17 +1,19 @@
-#include <cmath>
-#include <cstring>
+// OpenGL Headers
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 
+// Image loading library
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
 
+// Vector maths library
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
 #include <iostream>
-#include <math.h>
+#include <cmath>
+#include <cstring>
 
 #include "numeric_types.h"
 #include "shader.h"
