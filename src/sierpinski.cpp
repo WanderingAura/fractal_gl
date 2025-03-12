@@ -41,8 +41,8 @@ void RandomSierpinski::generatePoints() {
 
     // iterate on multiple points at a time
     glm::vec2 curPoints[] = {
-        // glm::vec2(-0.25, -0.5),
-        // glm::vec2(0.25, 0.35),
+        glm::vec2(-0.25, -0.4),
+        glm::vec2(0.25, 0.35),
         glm::vec2(0.0, 0.0),
     };
 
