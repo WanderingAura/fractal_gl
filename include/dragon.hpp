@@ -6,6 +6,7 @@
 #include "numeric_types.h"
 #include "bit_array.hpp"
 #include "shader.h"
+#include "fractal.hpp"
 
 #include <glm/vec2.hpp>
 
@@ -14,18 +15,17 @@ typedef struct {
     i32 direction; // in quarter turns with 0 being towards the right
 } Line;
 
-class DragonCurve {
+class DragonCurve : public Fractal {
 public:
-    std::vector<Line> lines;
+    DragonCurve();
 
-    DragonCurve(u32 n);
+    i32 init(u32 order);
+    void render();
 
-    void generateLines();
-
-    void initGL();
-    void renderCurve(i32 numLines);
+    void setNumLinesToRender(u32 n);
 
 private:
+    std::vector<Line> lines;
     BitArray sequence;
 
     // OpenGL shader/buffers
@@ -40,8 +40,10 @@ private:
     // curve properties
     u32 order;
     f32 lineLen;
+    u32 numLinesToRender;
 
     void genSequence(u32 n);
+    void generateLines(u32 order);
 };
 
 #endif

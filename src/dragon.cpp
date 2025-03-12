@@ -44,12 +44,16 @@ public:
     }
 };
 
-DragonCurve::DragonCurve(u32 n) :
-    order(n),
+DragonCurve::DragonCurve() :
     shader("../shaders/shader.vs", "../shaders/shader.fs") {}
 
-void DragonCurve::initGL() {
+i32 DragonCurve::init(u32 order) {
+    if (order > 20) {
+        std::cerr << "the order given for the dragon curve is too high\n";
+        return 1;
+    }
 
+    // OpenGL set up
     f32 vertices[] = {
         0.0f, 0.0f, 0.0f,
         1.0f, 0.0f, 0.0f,
@@ -68,14 +72,28 @@ void DragonCurve::initGL() {
 
     modelLoc = shader.getUniformLoc("model");
     greenLoc = shader.getUniformLoc("green");
+
+    generateLines(order);
+
+    numLinesToRender = lines.size();
+
+    return 0;
 }
 
-void DragonCurve::renderCurve(i32 numLines) {
+void DragonCurve::setNumLinesToRender(u32 n) {
+    if (n <= lines.size()) {
+        numLinesToRender = n;
+    } else {
+        std::cerr << "invalid number of lines: " << n << ", max is " << lines.size() << std::endl;
+    }
+}
+
+void DragonCurve::render() {
     shader.use();
     glBindVertexArray(VAO);
     float curTime = glfwGetTime();
 
-    for (i32 i = 0; i < numLines; i++) {
+    for (i32 i = 0; i < numLinesToRender; i++) {
         Line& line = lines[i];
         
         float green = (float)i/lines.size();
@@ -94,7 +112,7 @@ void DragonCurve::renderCurve(i32 numLines) {
     }
 }
 
-void DragonCurve::generateLines() {
+void DragonCurve::generateLines(u32 order) {
     if (lines.size() != 0) {
         std::cerr << "lines have already been generated. generateLines should only be called"
             " once per instance\n";

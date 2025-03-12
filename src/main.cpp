@@ -1,6 +1,7 @@
 // OpenGL Headers
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
+#include <memory>
 
 // Image loading library
 #define STB_IMAGE_IMPLEMENTATION
@@ -17,7 +18,7 @@
 
 #include "numeric_types.h"
 #include "shader.h"
-#include "dragon.hpp"
+#include "fractal.hpp"
 
 const i32 WIN_WIDTH = 800;
 const i32 WIN_HEIGHT = 600;
@@ -28,14 +29,14 @@ void framebuffer_size_callback(GLFWwindow *window, i32 width, i32 height);
 void processInput(GLFWwindow *window, i32 maxIteration);
 
 int main(int argc, char** argv) {
-    if (argc != 2) {
-        std::cout << "Usage: fractal_gl {N}\n";
+    if (argc != 3) {
+        std::cout << "Usage: fractal_gl {fractal_name} {N}\n";
+        std::cout << "List of fractals supported\n";
+        std::cout << "\t- dragon\tDragon Curve: N is the order of the curve\n";
+        std::cout << "\t- rsierpinski\tRandomly generated Sierpinski triangle: N is the number of points generated\n";
+        return 0;
     }
 
-    int n = atoi(argv[1]);
-    if (n <= 0 || n >= 20) {
-        std::cerr << "invalid input. the order of the curve should be between 1 and 19\n";
-    }
     // create window
     if (!glfwInit()) {
         std::cout << "Failed to initialise GLFW\n";
@@ -62,21 +63,27 @@ int main(int argc, char** argv) {
         return -1;
     }
 
-    float curveMaxWidth = pow(2, n/2.0);
-    printf("width=%f\n", curveMaxWidth);
-    const float line_length = 1/curveMaxWidth;
+    FractalCreator creator;
+    std::string fractalName = std::string(argv[1]);
+    std::unique_ptr<Fractal> fractal = creator.createFractal(fractalName);
 
-    DragonCurve curve(n);
-    curve.generateLines();
-
-    curve.initGL();
-
-    i32 numLines[30]; // FIX: temp calculation to test different orders of curves
-    numLines[0] = 1;
-    for (i32 i = 1; i < n; i++) {
-        numLines[i] = numLines[i-1]*2 + 1;
-        printf("numLines = %d\n", numLines[i]);
+    int order = atoi(argv[2]);
+    if (order <= 0) {
+        std::cerr << "invalid input. N must be bigger than 0\n";
+        glfwTerminate();
+        return 0;
     }
+
+    glEnable(GL_DEBUG_OUTPUT);
+
+    fractal->init(order);
+
+    // i32 numLines[30]; // FIX: temp calculation to test different orders of curves
+    // numLines[0] = 1;
+    // for (i32 i = 1; i < n; i++) {
+    //     numLines[i] = numLines[i-1]*2 + 1;
+    //     printf("numLines = %d\n", numLines[i]);
+    // }
 
     double totalTime = 0;
     i32 numFrames = 0;
@@ -88,22 +95,23 @@ int main(int argc, char** argv) {
         numFrames++;
         if (numFrames == 60) {
             f64 averageFrameTime = totalTime/numFrames;
-            printf("averageFrameTime = %lf, FPS = %lf, lines=%d\n", averageFrameTime,
-                   1/averageFrameTime, numLines[n-1]);
+            printf("averageFrameTime = %lf, FPS = %lf\n", averageFrameTime,
+                   1/averageFrameTime);
             numFrames = 0;
             totalTime = 0;
         }
         startTime = curTime;
-        processInput(window, n);
+        processInput(window, order);
 
-        glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
-        glClear(GL_COLOR_BUFFER_BIT);
+        // glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
+        // glClear(GL_COLOR_BUFFER_BIT);
 
-        curve.renderCurve(curve.lines.size());
+        fractal->render();
 
         glfwPollEvents();
         glfwSwapBuffers(window);
     }
+cleanup:
     glfwTerminate();
     return 0;
 }

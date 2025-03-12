@@ -11,7 +11,10 @@
 
 RandomSierpinski::RandomSierpinski()
     : shader("../shaders/random_sierpinski.vs", "../shaders/random_sierpinski.fs") {}
-void RandomSierpinski::initGL() {
+
+i32 RandomSierpinski::init(u32 order) {
+    numPoints = order;
+
     f32 triangleVertices[] = {
         -0.5, -0.75, 0.0,
         0.5, -0.75, 0.0,
@@ -29,10 +32,21 @@ void RandomSierpinski::initGL() {
     glEnableVertexAttribArray(0);
 
     shader.use();
+
+    i32 vertLocs[3];
+    vertLocs[0] = shader.getUniformLoc("triangleVert1");
+    vertLocs[1] = shader.getUniformLoc("triangleVert2");
+    vertLocs[2] = shader.getUniformLoc("triangleVert3");
+
+    for (i32 i = 0; i < 9; i+=3) {
+        glUniform3f(vertLocs[i], triangleVertices[i], triangleVertices[i+1], triangleVertices[i+2]);
+    }
+
+    return 0;
 }
 
 void RandomSierpinski::render() {
-    const i32 numInstances = 1000;
-
-    glDrawArraysInstanced(GL_POINTS, 0, 3, numInstances);
+    glBindVertexArray(VAO);
+    shader.use();
+    glDrawArraysInstanced(GL_POINTS, 0, 3, numPoints);
 }

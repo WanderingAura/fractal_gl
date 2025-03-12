@@ -41,19 +41,19 @@ public:
         vertexShader = glCreateShader(GL_VERTEX_SHADER);
         glShaderSource(vertexShader, 1, &vShaderCodeC, NULL);
         glCompileShader(vertexShader);
-        assert_shader_comp_success(vertexShader, __LINE__);
+        ASSERT_SHADER_COMP(vertexShader);
 
         u32 fragmentShader;
         fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
         glShaderSource(fragmentShader, 1, &fShaderCodeC, NULL);
         glCompileShader(fragmentShader);
-        assert_shader_comp_success(fragmentShader, __LINE__);
+        ASSERT_SHADER_COMP(fragmentShader);
 
         id = glCreateProgram();
         glAttachShader(id, vertexShader);
         glAttachShader(id, fragmentShader);
         glLinkProgram(id);
-        assert_shader_link_success(id, __LINE__);
+        ASSERT_SHADER_LINK(id);
         glDeleteShader(vertexShader);
         glDeleteShader(fragmentShader);
     }
@@ -67,6 +67,7 @@ public:
     }
 
 private:
+
     void assert_shader_comp_success(u32 shaderHandle, i32 line) {
         i32 success;
         char infoLog[512];
