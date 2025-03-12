@@ -17,6 +17,10 @@ RandomSierpinski::RandomSierpinski()
     : shader("../shaders/random_sierpinski.vs", "../shaders/random_sierpinski.fs") {}
 
 i32 RandomSierpinski::init(u32 order) {
+    if (order > 1000000) {
+        std::cerr << "Too many points. Random Sierpinski only supports up to 1 million points\n";
+        return 1;
+    }
     numPoints = order;
 
     glGenVertexArrays(1, &VAO);

@@ -110,6 +110,8 @@ void DragonCurve::render() {
                             glm::vec3(0.0f, 0.0f, 1.0f));
         model = glm::scale(model, glm::vec3(lineLen, lineLen, 1.0f));
         glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
+        // TODO: do all the necessary transformations beforehand and make a single call to
+        // glDrawArrays
         glDrawArrays(GL_LINES, 0, 2);
 
     }
