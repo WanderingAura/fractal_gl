@@ -10,3 +10,5 @@ typedef int64_t i64;
 
 typedef float f32;
 typedef double f64;
+
+#define ARR_SIZE(arr) (sizeof(arr)/sizeof(*arr))

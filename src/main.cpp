@@ -23,10 +23,11 @@
 const i32 WIN_WIDTH = 800;
 const i32 WIN_HEIGHT = 600;
 
-int curve_iteration = 0;
+int fractalOrder = 0;
+int maxOrder = 0;
 
 void framebuffer_size_callback(GLFWwindow *window, i32 width, i32 height);
-void processInput(GLFWwindow *window, i32 maxIteration);
+void keyCallback(GLFWwindow* window, i32 key, i32 scancode, i32 action, i32 mods);
 
 int main(int argc, char** argv) {
     if (argc != 3) {
@@ -56,6 +57,7 @@ int main(int argc, char** argv) {
 
     glfwMakeContextCurrent(window);
     glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
+    glfwSetKeyCallback(window, keyCallback);
 
     if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
         std::cout << "Failed to initialise GLAD\n";
@@ -76,7 +78,14 @@ int main(int argc, char** argv) {
 
     glEnable(GL_DEBUG_OUTPUT);
 
-    fractal->init(order);
+    i32 ret = fractal->init(order);
+    if (ret != 0) {
+        std::cerr << "error initialising fractal\n";
+        glfwTerminate();
+        return 0;
+    }
+
+    maxOrder = order;
 
     // i32 numLines[30]; // FIX: temp calculation to test different orders of curves
     // numLines[0] = 1;
@@ -101,11 +110,11 @@ int main(int argc, char** argv) {
             totalTime = 0;
         }
         startTime = curTime;
-        processInput(window, order);
 
-        // glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
-        // glClear(GL_COLOR_BUFFER_BIT);
+        glClearColor(1.0f, 1.0f, 0.878f, 1.0f);
+        glClear(GL_COLOR_BUFFER_BIT);
 
+        fractal->setOrderToRender(fractalOrder);
         fractal->render();
 
         glfwPollEvents();
@@ -120,22 +129,12 @@ void framebuffer_size_callback(GLFWwindow *window, i32 width, i32 height) {
     glViewport(0, 0, WIN_WIDTH, WIN_HEIGHT);
 }
 
-void processInput(GLFWwindow *window, i32 maxIteration) {
-    if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS) {
+void keyCallback(GLFWwindow* window, i32 key, i32 scancode, i32 action, i32 mods) {
+    if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS) {
         glfwSetWindowShouldClose(window, true);
-    }
-    if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS) {
-        if (curve_iteration < maxIteration) {
-            curve_iteration += 1;
-        } else {
-            curve_iteration = 0;
-        }
-    }
-    if (glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS) {
-        if (curve_iteration > 0) {
-            curve_iteration-=1;
-        } else {
-            curve_iteration = 0;
-        }
+    } else if (key == GLFW_KEY_DOWN && action == GLFW_PRESS && fractalOrder > 0) {
+        fractalOrder--;
+    } else if (key == GLFW_KEY_UP && action == GLFW_PRESS && fractalOrder < maxOrder) {
+        fractalOrder++;
     }
 }

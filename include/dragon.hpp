@@ -20,10 +20,8 @@ public:
     DragonCurve();
 
     i32 init(u32 order);
+    void setOrderToRender(u32 order);
     void render();
-
-    void setNumLinesToRender(u32 n);
-
 private:
     std::vector<Line> lines;
     BitArray sequence;

@@ -1,13 +1,17 @@
 #include "numeric_types.h"
 #include "shader.h"
 #include <GL/gl.h>
+#include <glm/vec2.hpp>
+#include <cstdlib>
+#include <ctime>
+#include <cassert>
 #include "sierpinski.hpp"
 
-// TODO: use randomness to generate fractal
-// 1. use rng to generate a random point within the triangle
-// 2. give the point to the vertex shader, along with a random vertex
-// 3. vertex shader calcs the midpoint between the two points and draws it
-// 4. repeat
+static const glm::vec2 triangleVertices[] = {
+    glm::vec2(-0.5, -0.5),
+    glm::vec2(0.5, -0.5),
+    glm::vec2(0.0, 0.5),
+};
 
 RandomSierpinski::RandomSierpinski()
     : shader("../shaders/random_sierpinski.vs", "../shaders/random_sierpinski.fs") {}
@@ -15,38 +19,53 @@ RandomSierpinski::RandomSierpinski()
 i32 RandomSierpinski::init(u32 order) {
     numPoints = order;
 
-    f32 triangleVertices[] = {
-        -0.5, -0.75, 0.0,
-        0.5, -0.75, 0.0,
-        0.0, 0.75, 0.0
-    };
-
     glGenVertexArrays(1, &VAO);
     glBindVertexArray(VAO);
 
+    generatePoints();
+
     glGenBuffers(1, &VBO);
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(triangleVertices), triangleVertices, GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(float)*points.size(), points.data(), GL_STATIC_DRAW);
     
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3*sizeof(float), (void*)0);
+    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2*sizeof(float), (void*)0);
     glEnableVertexAttribArray(0);
 
     shader.use();
 
-    i32 vertLocs[3];
-    vertLocs[0] = shader.getUniformLoc("triangleVert1");
-    vertLocs[1] = shader.getUniformLoc("triangleVert2");
-    vertLocs[2] = shader.getUniformLoc("triangleVert3");
-
-    for (i32 i = 0; i < 9; i+=3) {
-        glUniform3f(vertLocs[i], triangleVertices[i], triangleVertices[i+1], triangleVertices[i+2]);
-    }
-
     return 0;
+}
+
+void RandomSierpinski::generatePoints() {
+    srand(time(0));
+
+    // iterate on multiple points at a time
+    glm::vec2 curPoints[] = {
+        // glm::vec2(-0.25, -0.5),
+        // glm::vec2(0.25, 0.35),
+        glm::vec2(0.0, 0.0),
+    };
+
+    for (i32 i = 0; i < numPoints; i++) {
+        i32 r = rand() % 3;
+#if 0
+        printf("r: %d\n", r);
+#endif
+        assert(r >= 0);
+        for (i32 i = 0; i < ARR_SIZE(curPoints); i++) {
+            curPoints[i] = 0.5f * (curPoints[i] + triangleVertices[r]);
+            points.push_back(curPoints[i].x);
+            points.push_back(curPoints[i].y);
+        }
+    }
+}
+
+void RandomSierpinski::setOrderToRender(u32 order) {
+    return;
 }
 
 void RandomSierpinski::render() {
     glBindVertexArray(VAO);
     shader.use();
-    glDrawArraysInstanced(GL_POINTS, 0, 3, numPoints);
+    glDrawArrays(GL_POINTS, 0, points.size() / 2);
 }

@@ -9,6 +9,8 @@ public:
 
     virtual i32 init(u32 order) = 0;
 
+    virtual void setOrderToRender(u32 order) = 0;
+
     virtual void render() = 0;
 };
 

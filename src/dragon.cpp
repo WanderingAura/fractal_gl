@@ -80,11 +80,12 @@ i32 DragonCurve::init(u32 order) {
     return 0;
 }
 
-void DragonCurve::setNumLinesToRender(u32 n) {
-    if (n <= lines.size()) {
-        numLinesToRender = n;
+void DragonCurve::setOrderToRender(u32 order) {
+    u32 numLines = std::pow(2, order) - 1;
+    if (numLines <= lines.size()) {
+        numLinesToRender = numLines;
     } else {
-        std::cerr << "invalid number of lines: " << n << ", max is " << lines.size() << std::endl;
+        std::cerr << "invalid number of lines: " << order << ", max is " << lines.size() << std::endl;
     }
 }
 
@@ -100,8 +101,10 @@ void DragonCurve::render() {
 
         glUniform1f(greenLoc, green);
         glm::mat4 model(1.0f);
-        model = glm::rotate(model, glm::radians(curTime*120.0f),
+#if 1 // spinning the fractal for fun
+        model = glm::rotate(model, glm::radians(curTime*120.0f), 
                             glm::vec3(0.0f, 0.0f, 1.0f));
+#endif
         model = glm::translate(model, glm::vec3(line.pos.x, line.pos.y, 0.0f));
         model = glm::rotate(model, glm::radians(line.direction*90.0f),
                             glm::vec3(0.0f, 0.0f, 1.0f));
