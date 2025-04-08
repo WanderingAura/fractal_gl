@@ -1,0 +1,8 @@
+{
+    "name": "fractal-gl",
+    "description": "A fractal rendering application using OpenGL and GLFW.",
+    "dependencies": [
+      "glfw3",
+      "opengl"
+    ]
+  }
