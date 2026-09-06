@@ -2,23 +2,26 @@
 #include "shader.h"
 #include <GL/gl.h>
 #include <glm/vec2.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/type_ptr.hpp>
+#include <GLFW/glfw3.h>
 #include <cstdlib>
 #include <ctime>
 #include <cassert>
 #include "sierpinski.hpp"
 
 static const glm::vec2 triangleVertices[] = {
-    glm::vec2(-0.5, -0.5),
-    glm::vec2(0.5, -0.5),
-    glm::vec2(0.0, 0.5),
+    glm::vec2(-0.5, -1.0/3.0),
+    glm::vec2(0.5, -1.0/3.0),
+    glm::vec2(0.0, 2.0/3.0),
 };
 
 RandomSierpinski::RandomSierpinski()
     : shader("../shaders/random_sierpinski.vs", "../shaders/random_sierpinski.fs") {}
 
 i32 RandomSierpinski::init(u32 order) {
-    if (order > 1000000) {
-        std::cerr << "Too many points. Random Sierpinski only supports up to 1 million points\n";
+    if (order > 10000000) {
+        std::cerr << "Too many points. Random Sierpinski only supports up to 10 million points\n";
         return 1;
     }
     numPoints = order;
@@ -36,6 +39,8 @@ i32 RandomSierpinski::init(u32 order) {
     glEnableVertexAttribArray(0);
 
     shader.use();
+
+    modelLoc = shader.getUniformLoc("model");
 
     return 0;
 }
@@ -71,5 +76,14 @@ void RandomSierpinski::setOrderToRender(u32 order) {
 void RandomSierpinski::render() {
     glBindVertexArray(VAO);
     shader.use();
+
+    glm::mat4 model(1.0f);
+#if 1 // spinning the fractal for fun
+    float curTime = glfwGetTime();
+    model = glm::rotate(model, glm::radians(curTime*120.0f),
+                        glm::vec3(0.0f, 0.0f, 1.0f));
+#endif
+    glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
+
     glDrawArrays(GL_POINTS, 0, points.size() / 2);
 }

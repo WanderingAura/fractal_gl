@@ -19,6 +19,7 @@ private:
     Shader shader;
     u32 VAO;
     u32 VBO;
+    i32 modelLoc;
 
     void generatePoints();
 };
