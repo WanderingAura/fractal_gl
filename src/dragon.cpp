@@ -53,39 +53,36 @@ i32 DragonCurve::init(u32 order) {
         return 1;
     }
 
-    // OpenGL set up
-    f32 vertices[] = {
-        0.0f, 0.0f, 0.0f,
-        1.0f, 0.0f, 0.0f,
-    };
+    generateLines(order);
 
+    // OpenGL set up: upload the precomputed (pos.xyz, green) vertex data for every
+    // line so render() can draw the whole curve with a single glDrawArrays call.
     glGenVertexArrays(1, &VAO);
     glBindVertexArray(VAO);
     glGenBuffers(1, &VBO);
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, vertexData.size() * sizeof(f32), vertexData.data(), GL_STATIC_DRAW);
 
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 4 * sizeof(f32), (void*)0);
     glEnableVertexAttribArray(0);
+    glVertexAttribPointer(1, 1, GL_FLOAT, GL_FALSE, 4 * sizeof(f32), (void*)(3 * sizeof(f32)));
+    glEnableVertexAttribArray(1);
 
     shader.use();
 
     modelLoc = shader.getUniformLoc("model");
-    greenLoc = shader.getUniformLoc("green");
 
-    generateLines(order);
-
-    numLinesToRender = lines.size();
+    numLinesToRender = lines.size() - 1;
 
     return 0;
 }
 
 void DragonCurve::setOrderToRender(u32 order) {
     u32 numLines = std::pow(2, order) - 1;
-    if (numLines <= lines.size()) {
+    if (numLines <= lines.size() - 1) {
         numLinesToRender = numLines;
     } else {
-        std::cerr << "invalid number of lines: " << order << ", max is " << lines.size() << std::endl;
+        std::cerr << "invalid number of lines: " << order << ", max is " << lines.size() - 1 << std::endl;
     }
 }
 
@@ -94,27 +91,13 @@ void DragonCurve::render() {
     glBindVertexArray(VAO);
     float curTime = glfwGetTime();
 
-    for (i32 i = 0; i < numLinesToRender; i++) {
-        Line& line = lines[i];
-        
-        float green = (float)i/lines.size();
-
-        glUniform1f(greenLoc, green);
-        glm::mat4 model(1.0f);
+    glm::mat4 model(1.0f);
 #if 1 // spinning the fractal for fun
-        model = glm::rotate(model, glm::radians(curTime*120.0f), 
-                            glm::vec3(0.0f, 0.0f, 1.0f));
+    model = glm::rotate(model, glm::radians(curTime*120.0f),
+                        glm::vec3(0.0f, 0.0f, 1.0f));
 #endif
-        model = glm::translate(model, glm::vec3(line.pos.x, line.pos.y, 0.0f));
-        model = glm::rotate(model, glm::radians(line.direction*90.0f),
-                            glm::vec3(0.0f, 0.0f, 1.0f));
-        model = glm::scale(model, glm::vec3(lineLen, lineLen, 1.0f));
-        glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
-        // TODO: do all the necessary transformations beforehand and make a single call to
-        // glDrawArrays
-        glDrawArrays(GL_LINES, 0, 2);
-
-    }
+    glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
+    glDrawArrays(GL_LINE_STRIP, 0, numLinesToRender + 1);
 }
 
 void DragonCurve::generateLines(u32 order) {
@@ -158,12 +141,19 @@ void DragonCurve::generateLines(u32 order) {
     for (auto& line : lines) {
         curveBoundary.normalise(line.pos);
     }
-    lineLen = SIZE_FACTOR * 2/curveBoundary.maxRange;
+    // bake each point of the curve (and a smooth color gradient along it) into a
+    // flat vertex buffer, so render() can draw the whole curve with a single
+    // GL_LINE_STRIP call. Consecutive segments share an endpoint, so one vertex
+    // per point is enough - no need to duplicate shared points or use an index buffer.
+    vertexData.reserve(lines.size() * 4);
+    for (u32 i = 0; i < lines.size(); i++) {
+        f32 green = (f32)i / (lines.size() - 1);
+        vertexData.insert(vertexData.end(), {lines[i].pos.x, lines[i].pos.y, 0.0f, green});
+    }
 }
 
 void DragonCurve::genSequence(u32 n) {
     assert(n < 20);
-
     // generate the binary sequence for dragon curve using method
     // shown in https://mathworld.wolfram.com/DragonCurve.html
     while (n--) {

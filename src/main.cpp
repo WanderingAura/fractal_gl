@@ -86,6 +86,7 @@ int main(int argc, char** argv) {
     }
 
     maxOrder = order;
+    fractalOrder = order;
 
     // i32 numLines[30]; // FIX: temp calculation to test different orders of curves
     // numLines[0] = 1;

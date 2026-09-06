@@ -24,6 +24,7 @@ public:
     void render();
 private:
     std::vector<Line> lines;
+    std::vector<f32> vertexData; // interleaved (pos.xyz, green) per vertex, precomputed in generateLines
     BitArray sequence;
 
     // OpenGL shader/buffers
@@ -33,11 +34,9 @@ private:
 
     // uniform locations
     i32 modelLoc;
-    i32 greenLoc;
 
     // curve properties
     u32 order;
-    f32 lineLen;
     u32 numLinesToRender;
 
     void genSequence(u32 n);
